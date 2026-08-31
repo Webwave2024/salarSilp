@@ -32,6 +32,12 @@ export async function login(userId: string, password: string): Promise<LoginResu
   if (user.role === 'EMPLOYEE') {
     const profile = await findEmployeeByUserId(user.id);
     employeeId = profile?.id;
+
+    // Block inactive or terminated employees from logging in
+    const blockedStatuses = ['Inactive', 'Terminated', 'On Leave'];
+    if (profile && blockedStatuses.includes(profile.employment_status ?? '')) {
+      return { success: false, error: `Your account is ${profile.employment_status}. Please contact HR.` };
+    }
   }
 
   const session: SessionPayload = {

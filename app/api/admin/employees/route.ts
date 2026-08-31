@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
-import { createEmployee, listEmployees } from '@/services/employee.service';
+import { createEmployee, listEmployees, listActiveEmployees } from '@/services/employee.service';
 import { z } from 'zod';
 
 const CreateEmployeeSchema = z.object({
@@ -28,7 +28,8 @@ const CreateEmployeeSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     await requireAdmin(request);
-    const employees = await listEmployees();
+    const activeOnly = request.nextUrl.searchParams.get('active') === 'true';
+    const employees = activeOnly ? await listActiveEmployees() : await listEmployees();
     return Response.json({ employees });
   } catch (err) {
     if (err instanceof Response) return err;

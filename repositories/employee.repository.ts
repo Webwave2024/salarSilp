@@ -27,7 +27,19 @@ export async function findAllEmployees(): Promise<EmployeeWithUser[]> {
     `SELECT ep.*, u.user_id AS webwave_user_id, u.role
      FROM employee_profiles ep
      JOIN users u ON ep.user_id = u.id
+     WHERE u.role != 'ADMIN'
      ORDER BY ep.created_at DESC`
+  );
+  return result.rows;
+}
+
+export async function findActiveEmployees(): Promise<EmployeeWithUser[]> {
+  const result = await pool.query<EmployeeWithUser>(
+    `SELECT ep.*, u.user_id AS webwave_user_id, u.role
+     FROM employee_profiles ep
+     JOIN users u ON ep.user_id = u.id
+     WHERE ep.employment_status = 'Active' AND u.role != 'ADMIN'
+     ORDER BY ep.full_name ASC`
   );
   return result.rows;
 }

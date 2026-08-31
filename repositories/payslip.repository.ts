@@ -137,3 +137,95 @@ export async function payslipBelongsToEmployee(payslipId: string, employeeId: st
   );
   return parseInt(result.rows[0].count) > 0;
 }
+
+export async function deletePayslip(id: string): Promise<boolean> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM payslip_earnings WHERE payslip_id = $1', [id]);
+    await client.query('DELETE FROM payslip_deductions WHERE payslip_id = $1', [id]);
+    await client.query('DELETE FROM payslip_summary_fields WHERE payslip_id = $1', [id]);
+    const result = await client.query('DELETE FROM payslips WHERE id = $1', [id]);
+    await client.query('COMMIT');
+    return result.rowCount !== null && result.rowCount > 0;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+export async function updatePayslip(id: string, data: {
+  pay_period: string;
+  pay_period_year: number;
+  pay_period_month: number;
+  paid_days: number;
+  working_days: number;
+  loss_of_pay_days: number;
+  pay_date: string;
+  gross_earnings: number;
+  total_deductions: number;
+  net_payable: number;
+  amount_in_words: string;
+  earnings: Array<{ field_name: string; amount: number; is_auto: boolean; sort_order: number }>;
+  deductions: Array<{ field_name: string; amount: number; is_auto: boolean; sort_order: number }>;
+  summary_fields: Array<{ field_name: string; field_value: string; sort_order: number }>;
+}): Promise<Payslip> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const payslipResult = await client.query<Payslip>(
+      `UPDATE payslips 
+       SET pay_period = $2, pay_period_year = $3, pay_period_month = $4,
+           paid_days = $5, working_days = $6, loss_of_pay_days = $7, pay_date = $8,
+           gross_earnings = $9, total_deductions = $10, net_payable = $11,
+           amount_in_words = $12
+       WHERE id = $1
+       RETURNING *`,
+      [
+        id, data.pay_period, data.pay_period_year, data.pay_period_month,
+        data.paid_days, data.working_days, data.loss_of_pay_days, data.pay_date,
+        data.gross_earnings, data.total_deductions, data.net_payable,
+        data.amount_in_words
+      ]
+    );
+    const payslip = payslipResult.rows[0];
+    if (!payslip) throw new Error('Payslip not found');
+
+    await client.query('DELETE FROM payslip_earnings WHERE payslip_id = $1', [id]);
+    await client.query('DELETE FROM payslip_deductions WHERE payslip_id = $1', [id]);
+    await client.query('DELETE FROM payslip_summary_fields WHERE payslip_id = $1', [id]);
+
+    for (const e of data.earnings) {
+      await client.query(
+        `INSERT INTO payslip_earnings (payslip_id, field_name, amount, is_auto, sort_order)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [id, e.field_name, e.amount, e.is_auto, e.sort_order]
+      );
+    }
+    for (const d of data.deductions) {
+      await client.query(
+        `INSERT INTO payslip_deductions (payslip_id, field_name, amount, is_auto, sort_order)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [id, d.field_name, d.amount, d.is_auto, d.sort_order]
+      );
+    }
+    for (const f of data.summary_fields) {
+      await client.query(
+        `INSERT INTO payslip_summary_fields (payslip_id, field_name, field_value, sort_order)
+         VALUES ($1, $2, $3, $4)`,
+        [id, f.field_name, f.field_value, f.sort_order]
+      );
+    }
+
+    await client.query('COMMIT');
+    return payslip;
+  } catch (err) {
+    await client.query('ROLLBACK');
+    throw err;
+  } finally {
+    client.release();
+  }
+}

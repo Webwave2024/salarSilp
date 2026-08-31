@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { monthName, round2 } from '@/utils/salaryUtils';
 
 interface Employee {
@@ -10,14 +10,13 @@ interface Employee {
 
 interface LineItem {
   field_name: string;
-  amount: string; // string so the input is controlled cleanly
+  amount: string;
 }
 
 interface SummaryField {
   field_name: string; field_value: string;
 }
 
-/** Safely parse a string to a number (returns 0 on invalid) */
 function safeN(val: string): number {
   const n = parseFloat(val);
   return isFinite(n) && !isNaN(n) ? Math.max(0, n) : 0;
@@ -27,19 +26,18 @@ function fmtINR(n: number): string {
   return '₹' + n.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-export default function GeneratePayslipPage() {
+export default function EditPayslipPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const defaultEmpId = searchParams.get('employee') || '';
+  const params = useParams();
+  const payslipId = params?.id as string;
 
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
-  const [loadingPreview, setLoadingPreview] = useState(false);
 
   // Form
-  const [employeeId, setEmployeeId] = useState(defaultEmpId);
+  const [employeeId, setEmployeeId] = useState('');
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [workingDays, setWorkingDays] = useState(26);
@@ -53,48 +51,33 @@ export default function GeneratePayslipPage() {
   const [summaryFields, setSummaryFields] = useState<SummaryField[]>([]);
 
   useEffect(() => {
-    fetch('/api/admin/employees?active=true')
-      .then(r => r.json())
-      .then(d => setEmployees(d.employees || []))
-      .finally(() => setLoading(false));
-  }, []);
-
-  // When employee changes → fetch salary preview and pre-fill rows
-  useEffect(() => {
-    if (!employeeId) {
-      setEarnings([]);
-      setDeductions([]);
-      return;
-    }
-    setLoadingPreview(true);
-    fetch(`/api/admin/employees/${employeeId}/salary-preview`)
-      .then(r => r.json())
-      .then(d => {
-        if (d.error || !d.preview) return;
-        const p = d.preview;
-        const initialEarnings = [
-          { field_name: 'Basic Salary',                amount: String(p.basic) },
-          { field_name: 'House Rent Allowance (HRA)', amount: String(p.hra) },
-        ];
-
-        // Add remaining amount as Personal Allowance if monthly salary > Basic + HRA
-        const basicHraSum = p.basic + p.hra;
-        if (d.monthly_salary > basicHraSum) {
-          initialEarnings.push({
-            field_name: 'Personal Allowance',
-            amount: String(round2(d.monthly_salary - basicHraSum))
-          });
-        }
-
-        setEarnings(initialEarnings);
-        setDeductions([
-          { field_name: 'Income Tax (TDS)',    amount: String(p.tds) },
-          { field_name: 'Provident Fund (PF)', amount: String(p.pf) },
-        ]);
-      })
-      .catch(() => {})
-      .finally(() => setLoadingPreview(false));
-  }, [employeeId]);
+    Promise.all([
+      fetch('/api/admin/employees').then(r => r.json()),
+      fetch(`/api/payslips/${payslipId}`).then(r => r.json())
+    ])
+    .then(([empData, payData]) => {
+      setEmployees(empData.employees || []);
+      
+      if (payData.error || !payData.payslip) {
+        setError(payData.error || 'Failed to load payslip');
+        return;
+      }
+      const p = payData.payslip;
+      setEmployeeId(p.employee_id);
+      setYear(Number(p.pay_period_year));
+      setMonth(Number(p.pay_period_month));
+      setWorkingDays(Number(p.working_days));
+      setPaidDays(Number(p.paid_days));
+      setLopDays(Number(p.loss_of_pay_days));
+      setPayDate(p.pay_date ? new Date(p.pay_date).toISOString().split('T')[0] : '');
+      
+      setEarnings(p.earnings.map((e: any) => ({ field_name: e.field_name, amount: String(e.amount) })));
+      setDeductions(p.deductions.map((d: any) => ({ field_name: d.field_name, amount: String(d.amount) })));
+      setSummaryFields(p.summary_fields.map((f: any) => ({ field_name: f.field_name, field_value: f.field_value })));
+    })
+    .catch(() => setError('Failed to load data'))
+    .finally(() => setLoading(false));
+  }, [payslipId]);
 
   // ── Line item helpers ────────────────────────────────────────
 
@@ -138,8 +121,8 @@ export default function GeneratePayslipPage() {
 
     setError(''); setGenerating(true);
     try {
-      const res = await fetch('/api/payslips', {
-        method: 'POST',
+      const res = await fetch(`/api/payslips/${payslipId}`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           employee_id:       employeeId,
@@ -155,8 +138,15 @@ export default function GeneratePayslipPage() {
         }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error || 'Generation failed'); return; }
-      router.push(`/payslip/${data.payslip.id}/print`);
+      if (!res.ok) { 
+        if (data.details && data.details.fieldErrors) {
+          setError('Validation failed: ' + JSON.stringify(data.details.fieldErrors));
+        } else {
+          setError(data.error || 'Update failed');
+        }
+        return; 
+      }
+      router.push('/admin/payslips');
     } catch {
       setError('Network error');
     } finally {
@@ -168,13 +158,13 @@ export default function GeneratePayslipPage() {
 
   return (
     <>
-      <div className="top-header"><h2>Generate Payslip</h2></div>
+      <div className="top-header"><h2>Edit Payslip</h2></div>
 
       <div className="page-body">
         <div className="page-header">
           <div>
-            <h1>Generate Payslip</h1>
-            <p>All earnings and deductions are fully editable. Totals update in real-time.</p>
+            <h1>Edit Payslip</h1>
+            <p>Modify existing payslip records. Changes are immediate.</p>
           </div>
         </div>
 
@@ -193,12 +183,13 @@ export default function GeneratePayslipPage() {
             <div className="form-grid">
               <div className="form-group">
                 <label>Employee <span className="required">*</span></label>
-                <select value={employeeId} onChange={e => setEmployeeId(e.target.value)} required>
+                <select value={employeeId} disabled required>
                   <option value="">Select Employee</option>
                   {employees.map(e => (
                     <option key={e.id} value={e.id}>{e.full_name} ({e.webwave_user_id})</option>
                   ))}
                 </select>
+                <p className="help-text">Employee cannot be changed once generated.</p>
               </div>
               <div className="form-group">
                 <label>Pay Date <span className="required">*</span></label>
@@ -239,112 +230,108 @@ export default function GeneratePayslipPage() {
           </div>
 
           {/* ── Earnings + Deductions ── */}
-          {loadingPreview ? (
-            <div style={{ padding: '24px', textAlign: 'center' }}><span className="spinner dark" /></div>
-          ) : (
-            <div className="form-grid">
+          <div className="form-grid">
 
-              {/* EARNINGS */}
-              <div className="form-section">
-                <div className="form-section-title"><i className="fi fi-rr-stats"></i> Earnings</div>
-                <div className="income-builder">
-                  <div className="income-builder-header">
-                    <div>Earning Name</div>
-                    <div>Amount (₹)</div>
-                    <div style={{ textAlign: 'right' }}>Action</div>
-                  </div>
-                  {earnings.length === 0 && (
-                    <div style={{ padding: '16px 14px', fontSize: '.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-                      Select an employee or add a row manually
-                    </div>
-                  )}
-                  {earnings.map((e, i) => (
-                    <div className="income-builder-row" key={i}>
-                      <input
-                        placeholder="e.g. Basic Salary"
-                        value={e.field_name}
-                        onChange={ev => updateEarning(i, 'field_name', ev.target.value)}
-                        required
-                      />
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={e.amount}
-                        onChange={ev => updateEarning(i, 'amount', ev.target.value)}
-                        min={0}
-                        step={0.01}
-                      />
-                      <button type="button" onClick={() => removeEarning(i)} className="btn btn-sm btn-ghost" style={{ color: 'var(--danger)' }}>
-                        <i className="fi fi-rr-cross"></i>
-                      </button>
-                    </div>
-                  ))}
-                  <button type="button" onClick={addEarning} className="add-field-btn">
-                    + Add Earning
-                  </button>
+            {/* EARNINGS */}
+            <div className="form-section">
+              <div className="form-section-title"><i className="fi fi-rr-stats"></i> Earnings</div>
+              <div className="income-builder">
+                <div className="income-builder-header">
+                  <div>Earning Name</div>
+                  <div>Amount (₹)</div>
+                  <div style={{ textAlign: 'right' }}>Action</div>
                 </div>
-
-                {/* Gross total */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderTop: '2px solid var(--border)', fontWeight: 700, fontSize: '.9rem', marginTop: '4px' }}>
-                  <span>Gross Earnings</span>
-                  <span>{fmtINR(liveCalc.grossEarnings)}</span>
-                </div>
-                {lopDays > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 14px', fontSize: '.85rem', color: 'var(--danger)' }}>
-                    <span>LOP Deduction ({lopDays} days)</span>
-                    <span>- {fmtINR(liveCalc.lopAmount)}</span>
+                {earnings.length === 0 && (
+                  <div style={{ padding: '16px 14px', fontSize: '.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                    Add a row manually
                   </div>
                 )}
+                {earnings.map((e, i) => (
+                  <div className="income-builder-row" key={i}>
+                    <input
+                      placeholder="e.g. Basic Salary"
+                      value={e.field_name}
+                      onChange={ev => updateEarning(i, 'field_name', ev.target.value)}
+                      required
+                    />
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={e.amount}
+                      onChange={ev => updateEarning(i, 'amount', ev.target.value)}
+                      min={0}
+                      step={0.01}
+                    />
+                    <button type="button" onClick={() => removeEarning(i)} className="btn btn-sm btn-ghost" style={{ color: 'var(--danger)' }}>
+                      <i className="fi fi-rr-cross"></i>
+                    </button>
+                  </div>
+                ))}
+                <button type="button" onClick={addEarning} className="add-field-btn">
+                  + Add Earning
+                </button>
               </div>
 
-              {/* DEDUCTIONS */}
-              <div className="form-section">
-                <div className="form-section-title"><i className="fi fi-rr-stats"></i> Deductions</div>
-                <div className="income-builder">
-                  <div className="income-builder-header">
-                    <div>Deduction Name</div>
-                    <div>Amount (₹)</div>
-                    <div style={{ textAlign: 'right' }}>Action</div>
-                  </div>
-                  {deductions.length === 0 && (
-                    <div style={{ padding: '16px 14px', fontSize: '.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>
-                      No deductions added
-                    </div>
-                  )}
-                  {deductions.map((d, i) => (
-                    <div className="income-builder-row" key={i}>
-                      <input
-                        placeholder="e.g. Provident Fund"
-                        value={d.field_name}
-                        onChange={ev => updateDeduction(i, 'field_name', ev.target.value)}
-                        required
-                      />
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={d.amount}
-                        onChange={ev => updateDeduction(i, 'amount', ev.target.value)}
-                        min={0}
-                        step={0.01}
-                      />
-                      <button type="button" onClick={() => removeDeduction(i)} className="btn btn-sm btn-ghost" style={{ color: 'var(--danger)' }}>
-                        <i className="fi fi-rr-cross"></i>
-                      </button>
-                    </div>
-                  ))}
-                  <button type="button" onClick={addDeduction} className="add-field-btn">
-                    + Add Deduction
-                  </button>
+              {/* Gross total */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderTop: '2px solid var(--border)', fontWeight: 700, fontSize: '.9rem', marginTop: '4px' }}>
+                <span>Gross Earnings</span>
+                <span>{fmtINR(liveCalc.grossEarnings)}</span>
+              </div>
+              {lopDays > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 14px', fontSize: '.85rem', color: 'var(--danger)' }}>
+                  <span>LOP Deduction ({lopDays} days)</span>
+                  <span>- {fmtINR(liveCalc.lopAmount)}</span>
                 </div>
+              )}
+            </div>
 
-                {/* Total deductions */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderTop: '2px solid var(--border)', fontWeight: 700, fontSize: '.9rem', marginTop: '4px' }}>
-                  <span>Total Deductions</span>
-                  <span>{fmtINR(liveCalc.totalDeductions)}</span>
+            {/* DEDUCTIONS */}
+            <div className="form-section">
+              <div className="form-section-title"><i className="fi fi-rr-stats"></i> Deductions</div>
+              <div className="income-builder">
+                <div className="income-builder-header">
+                  <div>Deduction Name</div>
+                  <div>Amount (₹)</div>
+                  <div style={{ textAlign: 'right' }}>Action</div>
                 </div>
+                {deductions.length === 0 && (
+                  <div style={{ padding: '16px 14px', fontSize: '.85rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                    No deductions added
+                  </div>
+                )}
+                {deductions.map((d, i) => (
+                  <div className="income-builder-row" key={i}>
+                    <input
+                      placeholder="e.g. Provident Fund"
+                      value={d.field_name}
+                      onChange={ev => updateDeduction(i, 'field_name', ev.target.value)}
+                      required
+                    />
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={d.amount}
+                      onChange={ev => updateDeduction(i, 'amount', ev.target.value)}
+                      min={0}
+                      step={0.01}
+                    />
+                    <button type="button" onClick={() => removeDeduction(i)} className="btn btn-sm btn-ghost" style={{ color: 'var(--danger)' }}>
+                      <i className="fi fi-rr-cross"></i>
+                    </button>
+                  </div>
+                ))}
+                <button type="button" onClick={addDeduction} className="add-field-btn">
+                  + Add Deduction
+                </button>
+              </div>
+
+              {/* Total deductions */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 14px', borderTop: '2px solid var(--border)', fontWeight: 700, fontSize: '.9rem', marginTop: '4px' }}>
+                <span>Total Deductions</span>
+                <span>{fmtINR(liveCalc.totalDeductions)}</span>
               </div>
             </div>
-          )}
+          </div>
 
           {/* ── Net Salary Preview ── */}
           <div className="net-preview" style={{ marginBottom: '20px' }}>
@@ -397,8 +384,8 @@ export default function GeneratePayslipPage() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '40px' }}>
             <button type="submit" className="btn btn-primary btn-lg" disabled={generating}>
               {generating
-                ? <><span className="spinner" /> Generating...</>
-                : <><i className="fi fi-rr-bolt"></i> Generate Payslip</>}
+                ? <><span className="spinner" /> Updating...</>
+                : <><i className="fi fi-rr-pencil"></i> Update Payslip</>}
             </button>
           </div>
 

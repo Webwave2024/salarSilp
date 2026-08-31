@@ -77,6 +77,60 @@ export async function generatePayslip(input: GeneratePayslipInput): Promise<Pays
   return full;
 }
 
+export async function editPayslip(id: string, input: GeneratePayslipInput): Promise<PayslipFull> {
+  const { updatePayslip } = await import('@/repositories/payslip.repository');
+
+  const earnings = input.earnings.map((e, i) => ({
+    field_name: e.field_name.trim(),
+    amount: safeNum(e.amount),
+    is_auto: false,
+    sort_order: i,
+  }));
+
+  const deductions = input.deductions.map((d, i) => ({
+    field_name: d.field_name.trim(),
+    amount: safeNum(d.amount),
+    is_auto: false,
+    sort_order: i,
+  }));
+
+  const summary_fields = input.summary_fields.map((f, i) => ({
+    field_name: f.field_name.trim(),
+    field_value: f.field_value,
+    sort_order: i,
+  }));
+
+  const calc = calculatePayslip({
+    earnings,
+    deductions,
+    working_days: input.working_days,
+    loss_of_pay_days: input.loss_of_pay_days,
+  });
+
+  const pay_period = payPeriodLabel(input.pay_period_year, input.pay_period_month);
+
+  await updatePayslip(id, {
+    pay_period,
+    pay_period_year: input.pay_period_year,
+    pay_period_month: input.pay_period_month,
+    paid_days: input.paid_days,
+    working_days: input.working_days,
+    loss_of_pay_days: input.loss_of_pay_days,
+    pay_date: input.pay_date,
+    gross_earnings: calc.grossEarnings,
+    total_deductions: calc.totalDeductions,
+    net_payable: calc.netSalary,
+    amount_in_words: amountToWords(calc.netSalary),
+    earnings,
+    deductions,
+    summary_fields,
+  });
+
+  const full = await findPayslipById(id);
+  if (!full) throw new Error('Payslip updated but could not be retrieved.');
+  return full;
+}
+
 export async function getPayslip(id: string, employeeId?: string): Promise<PayslipFull | null> {
   if (employeeId) {
     const belongs = await payslipBelongsToEmployee(id, employeeId);

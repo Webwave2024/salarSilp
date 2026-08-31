@@ -1,6 +1,6 @@
 import pool from '@/lib/db';
 import { createUser } from '@/repositories/user.repository';
-import { createEmployeeProfile, createOrUpdateSalary, findAllEmployees, findEmployeeById } from '@/repositories/employee.repository';
+import { createEmployeeProfile, createOrUpdateSalary, findAllEmployees, findActiveEmployees, findEmployeeById } from '@/repositories/employee.repository';
 import { generateUserId } from '@/utils/generateUserId';
 import type { CreateEmployeeInput, EmployeeWithUser } from '@/types/employee';
 import type { EmployeeSalary } from '@/types/employee';
@@ -67,4 +67,8 @@ export async function getEmployeeWithSalary(employeeId: string): Promise<{
 
 export async function listEmployees(): Promise<EmployeeWithUser[]> {
   return findAllEmployees();
+}
+
+export async function listActiveEmployees(): Promise<EmployeeWithUser[]> {
+  return findActiveEmployees();
 }
