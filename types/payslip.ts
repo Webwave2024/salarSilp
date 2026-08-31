@@ -50,6 +50,7 @@ export interface PayslipFull extends Payslip {
   employee_user_id: string;
   designation?: string;
   department?: string;
+  joining_date?: string;
 }
 
 export interface GeneratePayslipInput {

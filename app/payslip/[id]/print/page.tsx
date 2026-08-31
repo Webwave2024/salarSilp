@@ -134,43 +134,37 @@ export default function PayslipPrintPage() {
         .ps-emp-grid {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          padding: 0 32px;
+          padding: 24px 32px;
+          gap: 20px 40px;
           border-bottom: 1px solid #ddd;
+          background: #fdfdfd;
         }
 
         .ps-emp-item {
-          padding: 10px 0;
-          border-bottom: 1px solid #f0f0f0;
-          padding-right: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
         }
-
-        .ps-emp-item:nth-child(even) {
-          padding-left: 24px;
-          padding-right: 0;
-          border-left: 1px solid #f0f0f0;
-        }
-
-        /* Last row — remove bottom border */
-        .ps-emp-item:nth-last-child(-n+2) { border-bottom: none; }
 
         .ps-emp-label {
           font-size: 10px;
-          font-weight: 600;
+          font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.1em;
           color: #888;
-          margin-bottom: 2px;
         }
 
         .ps-emp-value {
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 600;
           color: #1a1a1a;
+          text-transform: capitalize;
         }
 
         .ps-emp-value.mono {
           font-family: 'Courier New', monospace;
           letter-spacing: 0.04em;
+          text-transform: uppercase;
         }
 
         /* ── INCOME TABLE ── */
@@ -188,24 +182,24 @@ export default function PayslipPrintPage() {
         .ps-income-head {
           display: grid;
           grid-template-columns: 1fr auto;
-          padding: 8px 16px;
-          background: #f5f5f5;
+          padding: 12px 24px;
+          background: #fafafa;
           font-size: 10px;
           font-weight: 700;
           text-transform: uppercase;
-          letter-spacing: 0.08em;
-          color: #555;
-          border-bottom: 1px solid #ddd;
+          letter-spacing: 0.1em;
+          color: #888;
+          border-bottom: 1px solid #eee;
         }
 
         .ps-income-row {
           display: grid;
           grid-template-columns: 1fr auto;
-          padding: 8px 16px;
-          font-size: 12.5px;
+          padding: 10px 24px;
+          font-size: 13px;
           color: #333;
-          border-bottom: 1px solid #f2f2f2;
-          min-height: 36px;
+          border-bottom: 1px solid #f9f9f9;
+          min-height: 40px;
           align-items: center;
         }
 
@@ -214,12 +208,12 @@ export default function PayslipPrintPage() {
         .ps-income-total {
           display: grid;
           grid-template-columns: 1fr auto;
-          padding: 9px 16px;
-          font-size: 12.5px;
+          padding: 14px 24px;
+          font-size: 13px;
           font-weight: 700;
           color: #1a1a1a;
-          background: #f5f5f5;
-          border-top: 1px solid #ddd;
+          background: #fafafa;
+          border-top: 1px solid #eee;
         }
 
         /* ── NET PAYABLE ── */
@@ -342,9 +336,8 @@ export default function PayslipPrintPage() {
               <div>
                 <div className="ps-company-name">{company?.company_name || 'WebWave Business Pvt. Ltd.'}</div>
                 <div className="ps-company-addr">
-                  {company?.address && <>{company.address}<br /></>}
-                  {company?.city && <>{company.city}, {company.state} – {company.pincode}<br /></>}
-                  {company?.email}
+                  {company?.address || 'Tilak Nagar, Mall Road'} <br />
+                  {company?.city || 'New Delhi'}, {company?.state || 'Delhi'} – {company?.pincode || '110018'}<br />
                 </div>
               </div>
             </div>
@@ -372,6 +365,12 @@ export default function PayslipPrintPage() {
             <div className="ps-emp-item">
               <div className="ps-emp-label">Designation</div>
               <div className="ps-emp-value">{payslip.designation || '—'}</div>
+            </div>
+            <div className="ps-emp-item">
+              <div className="ps-emp-label">Joining Date</div>
+              <div className="ps-emp-value">
+                {payslip.joining_date ? new Date(payslip.joining_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+              </div>
             </div>
             <div className="ps-emp-item">
               <div className="ps-emp-label">Working Days</div>

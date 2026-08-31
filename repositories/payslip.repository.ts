@@ -79,12 +79,13 @@ export async function createPayslip(data: {
 }
 
 export async function findPayslipById(id: string): Promise<PayslipFull | null> {
-  const payslipResult = await pool.query<Payslip & { employee_name: string; employee_user_id: string; designation: string; department: string }>(
+  const payslipResult = await pool.query<Payslip & { employee_name: string; employee_user_id: string; designation: string; department: string; joining_date: string }>(
     `SELECT p.*,
             ep.full_name AS employee_name,
             u.user_id AS employee_user_id,
             ep.designation,
-            ep.department
+            ep.department,
+            ep.joining_date
      FROM payslips p
      JOIN employee_profiles ep ON p.employee_id = ep.id
      JOIN users u ON ep.user_id = u.id
