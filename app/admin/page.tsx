@@ -106,7 +106,7 @@ export default async function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {stats.recentPayslips.map(p => (
+                {stats.recentPayslips.map((p: any) => (
                   <tr key={p.id}>
                     <td style={{ fontWeight: 500 }}>{p.employee_name}</td>
                     <td>{p.pay_period}</td>
