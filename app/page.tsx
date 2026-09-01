@@ -45,7 +45,7 @@ export default function LoginPage() {
     <div className="login-bg">
       <div className="login-card">
         <div className="login-logo">
-          <img src="/logo2.jpeg" alt="WebWave Logo" style={{ width: '42px', height: '42px', borderRadius: '12px', marginBottom: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
+          <img src="/logo2.jpeg" alt="WebWave Logo" style={{ width: '79px', height: '64px', borderRadius: '12px', marginBottom: '16px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
           <h1>WebWave Business Pvt. Ltd.</h1>
           <p>Employee Payslip Management System</p>
         </div>
