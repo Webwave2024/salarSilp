@@ -454,12 +454,12 @@ export default function PayslipPrintPage() {
           {/* FOOTER */}
           <div className="ps-footer">
             <div className="ps-footer-note">
-              This is a computer-generated document.<br />No physical signature is required.
+              This is a computer generated document.
             </div>
-            <div className="ps-sig-box">
+            {/* <div className="ps-sig-box">
               <div className="ps-sig-line" />
               <div className="ps-sig-label">Authorised Signatory</div>
-            </div>
+            </div> */}
           </div>
 
         </div>
