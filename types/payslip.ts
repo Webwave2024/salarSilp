@@ -7,6 +7,7 @@ export interface Payslip {
   paid_days: number;
   working_days: number;
   loss_of_pay_days: number;
+  pending_leave_days: number;
   pay_date: string;
   gross_earnings: number;
   total_deductions: number;
@@ -61,6 +62,7 @@ export interface GeneratePayslipInput {
   working_days: number;
   loss_of_pay_days: number;
   pay_date: string;
+  pending_leave_days: number;
   /** ALL earnings including Basic, HRA, allowances — admin-entered amounts */
   earnings: Array<{ field_name: string; amount: number }>;
   /** ALL deductions including TDS, PF, etc — admin-entered amounts */

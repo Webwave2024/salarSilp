@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS payslips (
   paid_days        NUMERIC(5,2) NOT NULL DEFAULT 0,
   working_days     NUMERIC(5,2) NOT NULL DEFAULT 26,
   loss_of_pay_days NUMERIC(5,2) NOT NULL DEFAULT 0,
+  pending_leave_days NUMERIC(5,2) NOT NULL DEFAULT 0,
   pay_date         DATE NOT NULL,
   gross_earnings   NUMERIC(15,2) NOT NULL DEFAULT 0,
   total_deductions NUMERIC(15,2) NOT NULL DEFAULT 0,

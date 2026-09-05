@@ -9,6 +9,7 @@ export async function createPayslip(data: {
   paid_days: number;
   working_days: number;
   loss_of_pay_days: number;
+  pending_leave_days: number;
   pay_date: string;
   gross_earnings: number;
   total_deductions: number;
@@ -28,13 +29,15 @@ export async function createPayslip(data: {
       `INSERT INTO payslips (
          employee_id, pay_period, pay_period_year, pay_period_month,
          paid_days, working_days, loss_of_pay_days, pay_date,
+         pending_leave_days,
          gross_earnings, total_deductions, net_payable,
          amount_in_words, monthly_salary_snapshot
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
        RETURNING *`,
       [
         data.employee_id, data.pay_period, data.pay_period_year, data.pay_period_month,
         data.paid_days, data.working_days, data.loss_of_pay_days, data.pay_date,
+        data.pending_leave_days,
         data.gross_earnings, data.total_deductions, data.net_payable,
         data.amount_in_words, data.monthly_salary_snapshot,
       ]
@@ -164,6 +167,7 @@ export async function updatePayslip(id: string, data: {
   working_days: number;
   loss_of_pay_days: number;
   pay_date: string;
+  pending_leave_days: number;
   gross_earnings: number;
   total_deductions: number;
   net_payable: number;
@@ -180,14 +184,15 @@ export async function updatePayslip(id: string, data: {
       `UPDATE payslips 
        SET pay_period = $2, pay_period_year = $3, pay_period_month = $4,
            paid_days = $5, working_days = $6, loss_of_pay_days = $7, pay_date = $8,
-           gross_earnings = $9, total_deductions = $10, net_payable = $11,
-           amount_in_words = $12
+           pending_leave_days = $9,
+           gross_earnings = $10, total_deductions = $11, net_payable = $12,
+           amount_in_words = $13
        WHERE id = $1
        RETURNING *`,
       [
         id, data.pay_period, data.pay_period_year, data.pay_period_month,
         data.paid_days, data.working_days, data.loss_of_pay_days, data.pay_date,
-        data.gross_earnings, data.total_deductions, data.net_payable,
+        data.pending_leave_days, data.gross_earnings, data.total_deductions, data.net_payable,
         data.amount_in_words
       ]
     );

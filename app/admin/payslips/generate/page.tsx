@@ -46,6 +46,7 @@ export default function GeneratePayslipPage() {
   const [paidDays, setPaidDays]       = useState(26);
   const [lopDays, setLopDays]         = useState(0);
   const [payDate, setPayDate]         = useState(new Date().toISOString().split('T')[0]);
+  const [pendingLeaveDays, setPendingLeaveDays] = useState(0);
 
   // All earnings and deductions as editable line items
   const [earnings, setEarnings]       = useState<LineItem[]>([]);
@@ -64,6 +65,7 @@ export default function GeneratePayslipPage() {
     if (!employeeId) {
       setEarnings([]);
       setDeductions([]);
+      setPendingLeaveDays(0);
       return;
     }
     setLoadingPreview(true);
@@ -152,6 +154,7 @@ export default function GeneratePayslipPage() {
           earnings:   earnings.map(e => ({ field_name: e.field_name.trim(), amount: safeN(e.amount) })),
           deductions: deductions.map(d => ({ field_name: d.field_name.trim(), amount: safeN(d.amount) })),
           summary_fields: summaryFields,
+          pending_leave_days: pendingLeaveDays,
         }),
       });
       const data = await res.json();
@@ -234,6 +237,10 @@ export default function GeneratePayslipPage() {
               <div className="form-group">
                 <label>Loss of Pay (LOP) Days</label>
                 <input type="number" value={lopDays} onChange={e => setLopDays(parseFloat(e.target.value))} min={0} max={31} step={0.5} />
+              </div>
+              <div className="form-group">
+                <label>Pending Leave Days</label>
+                <input type="number" value={pendingLeaveDays} onChange={e => setPendingLeaveDays(parseFloat(e.target.value))} min={0} max={31} step={0.5} />
               </div>
             </div>
           </div>

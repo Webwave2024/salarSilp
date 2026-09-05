@@ -385,6 +385,10 @@ export default function PayslipPrintPage() {
               <div className="ps-emp-value">{payslip.loss_of_pay_days}</div>
             </div>
             <div className="ps-emp-item">
+              <div className="ps-emp-label">Pending Leave Days</div>
+              <div className="ps-emp-value">{payslip.pending_leave_days}</div>
+            </div>
+            <div className="ps-emp-item">
               <div className="ps-emp-label">Pay Date</div>
               <div className="ps-emp-value">
                 {new Date(payslip.pay_date).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}

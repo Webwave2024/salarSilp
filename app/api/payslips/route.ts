@@ -14,6 +14,7 @@ const GeneratePayslipSchema = z.object({
   pay_period_month:  z.number().int().min(1).max(12),
   paid_days:         z.number().min(0),
   working_days:      z.number().min(1).max(31),
+  pending_leave_days: z.number().min(0).max(31),
   loss_of_pay_days:  z.number().min(0),
   pay_date:          z.string().min(1, 'Pay date is required'),
   earnings:          z.array(lineItemSchema).min(1, 'At least one earning is required'),
