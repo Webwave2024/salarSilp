@@ -205,7 +205,7 @@ export default function GeneratePayslipPage() {
                 <select value={employeeId} onChange={e => setEmployeeId(e.target.value)} required>
                   <option value="">Select Employee</option>
                   {employees.map(e => (
-                    <option key={e.id} value={e.id}>{e.full_name} ({e.webwave_user_id})</option>
+                    <option key={e.id} value={e.id}>{e.full_name}</option>
                   ))}
                 </select>
               </div>
