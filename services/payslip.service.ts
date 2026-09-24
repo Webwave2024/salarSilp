@@ -70,6 +70,7 @@ export async function generatePayslip(input: GeneratePayslipInput): Promise<Pays
     earnings,
     deductions,
     summary_fields,
+    employee_office_id:input.employee_office_id,
   });
 
   // 5. Return full payslip
@@ -142,6 +143,7 @@ export async function getPayslip(id: string, employeeId?: string): Promise<Paysl
 }
 
 export async function getEmployeePayslips(employeeId: string): Promise<Payslip[]> {
+  
   return findPayslipsByEmployee(employeeId);
 }
 

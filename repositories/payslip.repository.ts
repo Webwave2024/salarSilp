@@ -19,6 +19,7 @@ export async function createPayslip(data: {
   earnings: Array<{ field_name: string; amount: number; is_auto: boolean; sort_order: number }>;
   deductions: Array<{ field_name: string; amount: number; is_auto: boolean; sort_order: number }>;
   summary_fields: Array<{ field_name: string; field_value: string; sort_order: number }>;
+  employee_office_id: string;
 }): Promise<Payslip> {
   const client = await pool.connect();
   try {
@@ -31,8 +32,8 @@ export async function createPayslip(data: {
          paid_days, working_days, loss_of_pay_days, pay_date,
          pending_leave_days,
          gross_earnings, total_deductions, net_payable,
-         amount_in_words, monthly_salary_snapshot
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+         amount_in_words, monthly_salary_snapshot,employee_office_id
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
        RETURNING *`,
       [
         data.employee_id, data.pay_period, data.pay_period_year, data.pay_period_month,
@@ -40,6 +41,7 @@ export async function createPayslip(data: {
         data.pending_leave_days,
         data.gross_earnings, data.total_deductions, data.net_payable,
         data.amount_in_words, data.monthly_salary_snapshot,
+        data.employee_office_id,
       ]
     );
     const payslip = payslipResult.rows[0];

@@ -356,7 +356,7 @@ export default function PayslipPrintPage() {
             </div>
             <div className="ps-emp-item">
               <div className="ps-emp-label">Employee ID</div>
-              <div className="ps-emp-value mono">{payslip.employee_user_id}</div>
+              <div className="ps-emp-value mono">{payslip.employee_office_id}</div>
             </div>
             <div className="ps-emp-item">
               <div className="ps-emp-label">Department</div>

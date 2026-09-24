@@ -47,6 +47,7 @@ export default function GeneratePayslipPage() {
   const [lopDays, setLopDays]         = useState(0);
   const [payDate, setPayDate]         = useState(new Date().toISOString().split('T')[0]);
   const [pendingLeaveDays, setPendingLeaveDays] = useState(0);
+  const [employee_id,setEmployee_id] = useState("");
 
   // All earnings and deductions as editable line items
   const [earnings, setEarnings]       = useState<LineItem[]>([]);
@@ -132,6 +133,10 @@ export default function GeneratePayslipPage() {
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
+    if(!employee_id){
+      setError('Employee ID is required');
+      return;
+    }
     if (!employeeId)           { setError('Select an employee'); return; }
     if (paidDays > workingDays){ setError('Paid days cannot exceed working days'); return; }
     if (earnings.length === 0) { setError('Add at least one earning'); return; }
@@ -151,6 +156,7 @@ export default function GeneratePayslipPage() {
           paid_days:         paidDays,
           loss_of_pay_days:  lopDays,
           pay_date:          payDate,
+          employee_office_id:     employee_id,
           earnings:   earnings.map(e => ({ field_name: e.field_name.trim(), amount: safeN(e.amount) })),
           deductions: deductions.map(d => ({ field_name: d.field_name.trim(), amount: safeN(d.amount) })),
           summary_fields: summaryFields,
@@ -203,6 +209,11 @@ export default function GeneratePayslipPage() {
                   ))}
                 </select>
               </div>
+              <div className="form-group">
+                <label>Employee ID <span className="required">*</span></label>
+                <input type="text" value={employee_id} onChange={e => setEmployee_id(e.target.value)} min={1} max={31} step={0.5} />
+              </div>
+              
               <div className="form-group">
                 <label>Pay Date <span className="required">*</span></label>
                 <input type="date" value={payDate} onChange={e => setPayDate(e.target.value)} required />

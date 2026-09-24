@@ -15,6 +15,7 @@ export interface Payslip {
   amount_in_words: string;
   monthly_salary_snapshot: number;
   created_at: Date;
+  employee_office_id: string;
 }
 
 export interface PayslipEarning {
@@ -52,6 +53,7 @@ export interface PayslipFull extends Payslip {
   designation?: string;
   department?: string;
   joining_date?: string;
+  employee_office_id: string;
 }
 
 export interface GeneratePayslipInput {
@@ -68,4 +70,5 @@ export interface GeneratePayslipInput {
   /** ALL deductions including TDS, PF, etc — admin-entered amounts */
   deductions: Array<{ field_name: string; amount: number }>;
   summary_fields: Array<{ field_name: string; field_value: string }>;
+  employee_office_id: string;
 }
