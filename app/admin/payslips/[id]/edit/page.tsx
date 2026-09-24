@@ -38,6 +38,7 @@ export default function EditPayslipPage() {
 
   // Form
   const [employeeId, setEmployeeId] = useState('');
+  const [employeeOfficeId, setEmployeeOfficeId] = useState('');
   const [year, setYear] = useState(new Date().getFullYear());
   const [month, setMonth] = useState(new Date().getMonth() + 1);
   const [workingDays, setWorkingDays] = useState(26);
@@ -65,6 +66,7 @@ export default function EditPayslipPage() {
       }
       const p = payData.payslip;
       setEmployeeId(p.employee_id);
+      setEmployeeOfficeId(p.employee_office_id || '');
       setYear(Number(p.pay_period_year));
       setMonth(Number(p.pay_period_month));
       setWorkingDays(Number(p.working_days));
@@ -115,9 +117,10 @@ export default function EditPayslipPage() {
 
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
-    if (!employeeId)           { setError('Select an employee'); return; }
-    if (paidDays > workingDays){ setError('Paid days cannot exceed working days'); return; }
-    if (earnings.length === 0) { setError('Add at least one earning'); return; }
+    if (!employeeId)              { setError('Select an employee'); return; }
+    if (!employeeOfficeId.trim()) { setError('Employee ID is required'); return; }
+    if (paidDays > workingDays)  { setError('Paid days cannot exceed working days'); return; }
+    if (earnings.length === 0)   { setError('Add at least one earning'); return; }
     if (earnings.some(e => !e.field_name.trim())) { setError('All earning names are required'); return; }
     if (deductions.some(d => !d.field_name.trim())) { setError('All deduction names are required'); return; }
 
@@ -127,14 +130,15 @@ export default function EditPayslipPage() {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          employee_id:       employeeId,
-          pay_period_year:   year,
-          pay_period_month:  month,
-          working_days:      workingDays,
-          paid_days:         paidDays,
-          loss_of_pay_days:  lopDays,
+          employee_id:        employeeId,
+          employee_office_id: employeeOfficeId.trim(),
+          pay_period_year:    year,
+          pay_period_month:   month,
+          working_days:       workingDays,
+          paid_days:          paidDays,
+          loss_of_pay_days:   lopDays,
           pending_leave_days: pendingLeaveDays,
-          pay_date:          payDate,
+          pay_date:           payDate,
           earnings:   earnings.map(e => ({ field_name: e.field_name.trim(), amount: safeN(e.amount) })),
           deductions: deductions.map(d => ({ field_name: d.field_name.trim(), amount: safeN(d.amount) })),
           summary_fields: summaryFields,
@@ -193,6 +197,16 @@ export default function EditPayslipPage() {
                   ))}
                 </select>
                 <p className="help-text">Employee cannot be changed once generated.</p>
+              </div>
+              <div className="form-group">
+                <label>Employee ID <span className="required">*</span></label>
+                <input
+                  type="text"
+                  placeholder="e.g. WBPL-047444"
+                  value={employeeOfficeId}
+                  onChange={e => setEmployeeOfficeId(e.target.value)}
+                  required
+                />
               </div>
               <div className="form-group">
                 <label>Pay Date <span className="required">*</span></label>
