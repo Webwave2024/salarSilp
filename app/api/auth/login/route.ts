@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     // Set HTTP-only session cookie — never trust userId from frontend after this
     response.headers.set(
       'Set-Cookie',
-      `${COOKIE_NAME}=${token}; HttpOnly; Path=/; Max-Age=${MAX_AGE}; SameSite=Lax`
+      `${COOKIE_NAME}=${token}; HttpOnly; Path=/; Max-Age=${MAX_AGE}; SameSite=None; Secure`
     );
 
     return response;
